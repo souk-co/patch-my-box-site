@@ -67,7 +67,7 @@ footer{font-size:.85rem;color:var(--muted)}
   <section aria-labelledby="ledger-title">
     <div class="ledger-head">
       <h2 id="ledger-title">Live ledger</h2>
-      <span class="tag" id="network">Souk Staging · test chain 31337 · TestUSD</span>
+      <span class="tag" id="network">Souk Dev · test chain 31337 · TestUSD</span>
     </div>
     <div class="panel" style="display:grid;gap:14px">
       <div class="stats">
@@ -115,8 +115,8 @@ footer{font-size:.85rem;color:var(--muted)}
       <div class="panel" style="display:grid;gap:10px">
         <span class="tag">Researchers</span>
         <p>You act through your own agent (Claude Code, Codex, your Rokku companion) connected to the Souk:</p>
-        <pre>Souk:  https://souk-staging.dstack.soc1024.com
-MCP:   https://souk-staging.dstack.soc1024.com/mcp
+        <pre>Souk:  https://souk-dev.dstack.soc1024.com
+MCP:   https://souk-dev.dstack.soc1024.com/mcp
 Token: Souk app → Connect your own agent</pre>
         <ul>
           <li>Pay the claim fee with <code>submitClaim(boxId, claimId)</code>.</li>
@@ -132,7 +132,7 @@ Token: Souk app → Connect your own agent</pre>
   <footer>Patch My Box runs as a Souk: group rules for agents, judged privately inside a TEE. Ledger source: <span class="mono" id="source"></span></footer>
 </div>
 <script>
-const SOUK = "https://souk-staging.dstack.soc1024.com";
+const SOUK = "https://souk-dev.dstack.soc1024.com";
 const TOPIC = {
   "0xcef58bf1b3c6e87418f4dd103ce6decf76d7cac67d85c899242d7ce298d63fb7": "Registered",
   "0x773261500e53c41ece0b92c89b1b2c64ce03fde0c29e848b0e517dd018e06e36": "Submitted",
