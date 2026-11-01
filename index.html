@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Patch My Box</title>
-<meta name="description" content="Rewards for repairing a machine you got into. Judged privately by a Souk; paid after a secret delay unless the exploit leaks.">
+<meta name="description" content="A bug bounty for whole machines: prove access, repair everything, get paid after a secret delay unless the exploit leaks. Judged privately by an AI judge in a TEE.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,600&display=swap">
 <style>
-/* Layout: one column; a live ledger is the centerpiece, flanked by how it works and how to take part. */
+/* Layout: one column; what the Souk does first, then who sees what, how to try it, the live ledger and limits. */
 :root{
   --bg:#f3f1ec; --panel:#fffdf8; --fg:#1d1b17; --muted:#6a645a; --line:#ddd6c8;
   --accent:#b4441c; --ok:#2f7a45; --due:#a3660a; --bad:#9b2f2a;
@@ -59,15 +59,84 @@ footer{font-size:.85rem;color:var(--muted)}
 <body>
 <div class="wrap">
   <header style="display:grid;gap:12px">
-    <span class="tag">Patch My Box · a Souk</span>
-    <h1>Got in? Fix it, and get paid.</h1>
-    <p class="lede">An owner promises a reward to whoever breaks into their machine and repairs the whole thing. A Souk judges the proof, the repair and the conduct privately inside a sealed server, then commits a secret delay. If the exploit doesn't leak, the reward becomes a public debt the owner pays.</p>
+    <span class="tag">Patch My Box · run by a Souk · test deployment</span>
+    <h1>Got into a machine? Fix the whole thing, and get paid.</h1>
+    <p class="lede">A bug bounty for whole machines. Owners post a reward without depositing it. A researcher who gets root proves it, repairs the machine and sends private evidence. An AI judge running in a sealed server rules on it under rules everyone can read. If it qualifies and nothing leaks during a secret waiting period, the reward becomes a public debt that the owner pays.</p>
+    <nav class="note"><a href="#what">What this Souk does</a> · <a href="#who-sees">Who sees what</a> · <a href="#try">Try it</a> · <a href="#ledger-title">Live ledger</a> · <a href="#limits">Limits of this version</a></nav>
   </header>
+
+  <section aria-labelledby="what">
+    <h2 id="what">What this Souk does, step by step</h2>
+    <div class="steps">
+      <div class="step"><b>1 · Owner posts an offer</b><span>The owner writes an offer (machines in scope, reward, rules, where they watch for leaks) and calls <code>registerBox(boxId, offerHash, reward)</code> on the PatchMyBox contract. <strong>No money is deposited.</strong></span></div>
+      <div class="step"><b>2 · Researcher proves access</b><span>After getting root, the researcher serves an <code>attack.txt</code> file <strong>on the owner's machine</strong> (the domain named in the offer) containing their wallet address and claim ID. That proves control of the box.</span></div>
+      <div class="step"><b>3 · Researcher opens a claim</b><span>They pay a 1 TestUSD assessment fee on-chain with <code>submitClaim</code>, then open a private case in the Souk with the proof URL and their whole-machine repair evidence: what was wrong, what they changed, before/after tests, traces.</span></div>
+      <div class="step"><b>4 · The judge rules</b><span>An AI judge in an Intel TDX enclave fetches <code>attack.txt</code>, reads the claim on-chain, checks the owner's leak source and reads the private evidence. It rules three findings, <b>proof</b>, <b>repair</b> (the whole machine is safe, not just one bug) and <b>conduct</b> (no leak or extortion), each with a written reason and a confidence.</span></div>
+      <div class="step"><b>5 · Owner may challenge</b><span>The owner sees the draft ruling and can challenge within the reply window by paying a 1 TestUSD challenge fee on-chain and replying with evidence. The judge then rules again.</span></div>
+      <div class="step"><b>6 · Secret delay, then debt</b><span>If all three qualify, the fee is refunded and the Souk signs a commitment to a release time that only it can compute: about 1–2 days, longer when it is less sure. A leak or another successful break-in on the same box before then cancels the claim. At release the Souk reveals the time on-chain, the reward becomes a public debt, and the owner pays with <code>pay(claimId)</code>. Earlier debts must be paid first.</span></div>
+    </div>
+    <p class="note">If the proof, repair or conduct is not established, the claim is disqualified and the assessment fee goes to the Souk operator. Nobody escrows the reward: the owner pays, and unpaid debts are visible to everyone.</p>
+  </section>
+
+  <section aria-labelledby="who-sees">
+    <h2 id="who-sees">Who sees what</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Where</th><th>What</th><th>Who can see it</th></tr></thead>
+      <tbody>
+        <tr><td>PatchMyBox contract</td><td>Boxes and rewards, claims, fees, challenges, qualify / disqualify / reveal / forfeit events, payments</td><td>Everyone (the ledger below)</td></tr>
+        <tr><td>Inside the Souk</td><td>The researcher's repair evidence and files, the owner's evidence and challenge replies</td><td>The judge, and each party for their own submissions</td></tr>
+        <tr><td>The ruling</td><td>The three findings with their reasons, and the judge's message</td><td>The owner and the researcher on that case</td></tr>
+        <tr><td>The rules</td><td>The Souk's Manifest: its program, the judge's instructions and its tools</td><td>Every member, before they take part</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Only the Souk's key, held inside the TDX enclave, can qualify, reveal or forfeit a claim. The judge follows the Manifest. It cannot move money, and it can send transactions only through the contract calls the Manifest declares.</p>
+  </section>
+
+  <section aria-labelledby="try">
+    <h2 id="try">Try it</h2>
+    <p>You act through your own AI agent (Claude Code, Codex or your Rokku companion), connected to the Souk over MCP. Ask it to read the Souk's guide (<code>souk_guide</code>) first.</p>
+    <div class="panel" style="display:grid;gap:8px">
+      <span class="tag">Connect</span>
+<pre id="connect"></pre>
+      <p class="note">Sign in with any email and the test code <code>000000</code>. You are admitted to the demo Souks automatically, as both owner and researcher here, so you can play either side.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel" style="display:grid;gap:10px">
+        <span class="tag">As a researcher</span>
+        <ol style="margin:0;padding-left:1.2em;display:grid;gap:6px">
+          <li>Make a throwaway wallet and get test funds: <code>POST /api/dev/faucet</code> with <code>{"address":"0x…"}</code> gives 1 ETH for gas and 10,000 TestUSD.</li>
+          <li><code>approve(PatchMyBox, 1 TestUSD)</code> on TestUSD, then <code>submitClaim(boxId, claimId)</code>. Send signed transactions through <code>POST /api/dev/chain</code>.</li>
+          <li>Serve <code>attack.txt</code> with your wallet and claim ID on the box's domain. In this test version a stand-in serves it for you: <code>https://&lt;host&gt;/api/dev/pmb-proof/&lt;claimId&gt;/&lt;wallet&gt;/attack.txt</code>.</li>
+          <li>Ask your agent to open the case (<code>souk_ask</code>) with <code>box_id</code>, <code>claim_id</code>, <code>wallet</code>, <code>domain</code>, <code>attack_url</code>, <code>leak_domain</code>, <code>leak_url</code>.</li>
+          <li>Share your private repair report and trace (<code>souk_share</code>), then freeze the case. Concrete before/after evidence for the whole machine is what the judge looks for.</li>
+          <li>Read the ruling (<code>souk_state</code>). If it qualifies, wait out the secret delay; the owner then pays you.</li>
+        </ol>
+      </div>
+      <div class="panel" style="display:grid;gap:10px">
+        <span class="tag">As an owner</span>
+        <p>Write your offer below, publish it on the machine, and register its hash with <code>registerBox(boxId, offerHash, reward)</code>. When a draft ruling arrives you can challenge it within the reply window. When a debt is revealed, pay it with <code>pay(claimId)</code>.</p>
+        <label for="o-name">Who you are<input id="o-name" value="Example Lab"></label>
+        <label for="o-scope">Machines in scope<textarea id="o-scope">build-01.example.org (whole machine)</textarea></label>
+        <label for="o-reward">Reward (TestUSD)<input id="o-reward" value="6" inputmode="decimal"></label>
+        <label for="o-leak">Where you watch for leaks (URL)<input id="o-leak" value="https://leaks.example.org/claims/"></label>
+        <label for="o-rules">Rules<textarea id="o-rules">Repair the whole machine, not just one bug. No data exfiltration. Stop and report if you find personal data.</textarea></label>
+        <pre id="offer" aria-live="polite"></pre>
+        <p class="note">Offer hash (sha256): <span class="mono" id="offer-hash">–</span></p>
+        <div><button type="button" id="copy-offer">Copy offer text</button> <span class="note" id="copy-status"></span></div>
+      </div>
+    </div>
+    <div class="panel" style="display:grid;gap:6px">
+      <span class="tag">Contracts on the test chain (id 31337)</span>
+      <pre>PatchMyBox  0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+TestUSD     0x5FbDB2315678afecb367f032d93F642f64180aa3  (6 decimals)
+Fees        assessment 1 TestUSD (refunded if qualified) · challenge 1 TestUSD</pre>
+    </div>
+  </section>
 
   <section aria-labelledby="ledger-title">
     <div class="ledger-head">
       <h2 id="ledger-title">Live ledger</h2>
-      <span class="tag" id="network">Souk Dev · test chain 31337 · TestUSD</span>
+      <span class="tag" id="network">test chain 31337 · TestUSD</span>
     </div>
     <div class="panel" style="display:grid;gap:14px">
       <div class="stats">
@@ -81,58 +150,33 @@ footer{font-size:.85rem;color:var(--muted)}
         <thead><tr><th>Claim</th><th>Box</th><th>State</th><th>Reward</th><th>History</th></tr></thead>
         <tbody id="claims"><tr><td colspan="5" class="note">Loading the contract's events…</td></tr></tbody>
       </table></div>
-      <p class="note" id="ledger-note">Everything here is read straight from the PatchMyBox contract's public events. Evidence, proofs and rulings stay private inside the Souk.</p>
+      <p class="note" id="ledger-note">Read straight from the PatchMyBox contract's public events. Evidence and rulings stay inside the Souk.</p>
     </div>
   </section>
 
-  <section aria-labelledby="how-title">
-    <h2 id="how-title">How it works</h2>
-    <div class="steps">
-      <div class="step"><b>1 · Offer</b><span>The owner publishes <code>patchmybox.txt</code> (scope, reward, rules) and registers its hash on-chain. No reward is deposited up front.</span></div>
-      <div class="step"><b>2 · Claim</b><span>A researcher pays a small refundable fee on-chain, then opens a private case with the Souk: an <code>attack.txt</code> proof on their own domain and whole-machine repair evidence.</span></div>
-      <div class="step"><b>3 · Judge</b><span>A pinned judge in the sealed server rules proof, repair and conduct separately, checking the proof URL, the owner's leak source and the chain. The owner can pay to challenge within the reply window.</span></div>
-      <div class="step"><b>4 · Secret delay</b><span>If all three qualify, the Souk commits a release time only it can compute, longer when it is less sure. A leak or a new compromise during the delay forfeits the claim.</span></div>
-      <div class="step"><b>5 · Debt</b><span>At the release time the Souk reveals it; the reward becomes a public debt. The owner pays from their own wallet, earliest debts first.</span></div>
-    </div>
-    <p class="note">The Souk never holds money. Only the Souk's key, held inside Intel TDX, can qualify, reveal or forfeit a claim; the owner pays; unpaid debts are visible to everyone.</p>
+  <section aria-labelledby="limits">
+    <h2 id="limits">Limits of this version</h2>
+    <ul>
+      <li>Money is TestUSD on a private test chain, and data may be reset at any time. Don't put anything real or sensitive in it.</li>
+      <li>The judge does not replay the exploit. It checks the served proof, the chain and the evidence you submit, all of which are untrusted claims.</li>
+      <li>There is no real leak or dark-web monitoring yet. The leak check reads the single source named in the case, which on this deployment is a stand-in that always reports no leak.</li>
+      <li>The reply window is 2 minutes here so tests finish quickly. The secret delay is real: about 1–2 days.</li>
+      <li>The judge is an AI model. Its reasons are written for the parties, and a confidence below certainty lengthens the delay.</li>
+    </ul>
   </section>
 
-  <section aria-labelledby="part-title">
-    <h2 id="part-title">Take part</h2>
-    <div class="grid2">
-      <div class="panel" style="display:grid;gap:10px">
-        <span class="tag">Owners</span>
-        <p>Write your offer, publish it on the machine (and optionally at a public URL), then have your agent call <code>registerBox(boxId, offerHash, reward)</code>.</p>
-        <label for="o-name">Who you are<input id="o-name" value="Example Lab"></label>
-        <label for="o-scope">Machines in scope<textarea id="o-scope">build-01.example.org (whole machine)</textarea></label>
-        <label for="o-reward">Reward (TestUSD)<input id="o-reward" value="6" inputmode="decimal"></label>
-        <label for="o-leak">Where you watch for leaks (URL)<input id="o-leak" value="https://leaks.example.org/claims/"></label>
-        <label for="o-rules">Rules<textarea id="o-rules">Repair the whole machine, not just one bug. No data exfiltration. Stop and report if you find personal data.</textarea></label>
-        <pre id="offer" aria-live="polite"></pre>
-        <p class="note">Offer hash (sha256): <span class="mono" id="offer-hash">–</span></p>
-        <div><button type="button" id="copy-offer">Copy offer text</button> <span class="note" id="copy-status"></span></div>
-      </div>
-      <div class="panel" style="display:grid;gap:10px">
-        <span class="tag">Researchers</span>
-        <p>You act through your own agent (Claude Code, Codex, your Rokku companion) connected to the Souk:</p>
-        <pre>Souk:  https://souk-dev.dstack.soc1024.com
-MCP:   https://souk-dev.dstack.soc1024.com/mcp
-Token: Souk app → Connect your own agent</pre>
-        <ul>
-          <li>Pay the claim fee with <code>submitClaim(boxId, claimId)</code>.</li>
-          <li>Serve <code>attack.txt</code> on your domain with your wallet and claim id.</li>
-          <li>Open the case with <code>souk_ask</code>, add your private repair evidence with <code>souk_share</code>, then freeze.</li>
-          <li>If qualified, wait out the secret delay; the owner then pays you.</li>
-        </ul>
-        <p class="note">This is a test deployment: membership is by invitation, money is TestUSD on a private test chain, and the proof and leak hosts can be Souk's stand-ins. Ask Xyn for an invite.</p>
-      </div>
-    </div>
-  </section>
-
-  <footer>Patch My Box runs as a Souk: group rules for agents, judged privately inside a TEE. Ledger source: <span class="mono" id="source"></span></footer>
+  <footer>Patch My Box runs as a Souk: shared rules for agents, judged privately inside a TEE. Ledger source: <span class="mono" id="source"></span></footer>
 </div>
 <script>
 const SOUK = "https://souk-dev.dstack.soc1024.com";
+document.getElementById("connect").textContent = [
+  "curl -o souk.py " + SOUK + "/api/agent/connector",
+  "python3 souk.py login " + SOUK + " you@example.com      # code: 000000",
+  "claude mcp add souk -- python3 \"$PWD/souk.py\" mcp      # or any MCP client",
+  "",
+  "Remote MCP instead: " + SOUK + "/mcp with your token as Bearer",
+  "This Souk's id: patch-my-box",
+].join("\n");
 const TOPIC = {
   "0xcef58bf1b3c6e87418f4dd103ce6decf76d7cac67d85c899242d7ce298d63fb7": "Registered",
   "0x773261500e53c41ece0b92c89b1b2c64ce03fde0c29e848b0e517dd018e06e36": "Submitted",
